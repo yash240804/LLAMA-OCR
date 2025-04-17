@@ -1,0 +1,8 @@
+python-dotenv
+requests
+pandas
+langchain
+langchain-groq
+openai  # for JSON parser
+tqdm
+pillow
