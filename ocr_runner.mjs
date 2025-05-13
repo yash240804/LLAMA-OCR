@@ -1,4 +1,3 @@
-// ocr_runner.mjs
 import { ocr } from "llama-ocr";
 import fs from "fs";
 import dotenv from "dotenv";
@@ -20,7 +19,6 @@ if (!outputPath) {
   process.exit(1);
 }
 
-// Verify Together API key exists
 const apiKey = process.env.TOGETHER_API_KEY;
 if (!apiKey) {
   console.error("Error: TOGETHER_API_KEY not found in environment variables");
@@ -28,13 +26,11 @@ if (!apiKey) {
   process.exit(1);
 }
 
-// Verify input file exists
 if (!fs.existsSync(filePath)) {
   console.error(`Error: Input file does not exist: ${filePath}`);
   process.exit(1);
 }
 
-// Run OCR
 console.log(`Processing image: ${filePath}`);
 console.log(`Output will be saved to: ${outputPath}`);
 

@@ -10,7 +10,6 @@ from langchain_core.output_parsers import JsonOutputParser
 import sys
 import traceback
 
-# Load environment variables
 load_dotenv()
 
 class PaymentExtractor:
@@ -61,23 +60,18 @@ class PaymentExtractor:
     def extract_payment_info(self, ocr_text):
         """Run the structured extraction on OCR output using the Groq-powered LLM."""
         try:
-            # Invoke the chain
             result = self.extraction_chain.invoke({"ocr_text": ocr_text})
-            
-            # Print the result for debugging
+
             print("\n=== Extracted Payment Info ===")
             print(f"Result type: {type(result)}")
             print(result)
             print("============================\n")
 
-            # Make sure result is a dictionary
             if isinstance(result, dict):
                 return result
             elif hasattr(result, "__dict__"):
-                # If it's an object with attributes, try to convert to dict
                 return vars(result)
             else:
-                # Try to parse it as JSON if it's a string
                 try:
                     if isinstance(result, str):
                         return json.loads(result)
@@ -99,8 +93,7 @@ def run_llama_ocr(image_path, output_path="ocr_output.md"):
             ["node", "ocr_runner.mjs", image_path, output_path],
             check=True
         )
-        
-        # Check if the output file exists
+
         if not os.path.exists(output_path):
             print(f"OCR output file not created: {output_path}")
             return None
@@ -117,8 +110,7 @@ def run_llama_ocr(image_path, output_path="ocr_output.md"):
 def process_payment_screenshots(image_directory, output_file="payment_records.xlsx", contact_mapping=None):
     """Process all payment screenshots in a directory and save structured results to Excel."""
     extractor = PaymentExtractor()
-    
-    # Check if directory exists
+
     if not os.path.exists(image_directory):
         print(f"Creating directory: {image_directory}")
         os.makedirs(image_directory)
@@ -150,9 +142,7 @@ def process_payment_screenshots(image_directory, output_file="payment_records.xl
         payment_info = extractor.extract_payment_info(ocr_text)
         
         if payment_info:
-            payment_info["image_file"] = img_file
-            
-            # Add contact information if available
+
             if contact_mapping and img_file in contact_mapping:
                 contact = contact_mapping[img_file]
                 payment_info["contact_name"] = contact.get("name")
@@ -171,14 +161,13 @@ def process_payment_screenshots(image_directory, output_file="payment_records.xl
         else:
             print(f"❌ Failed to extract payment information from {img_file}")
 
-        # Clean up temporary files
         if os.path.exists(temp_output):
             os.remove(temp_output)
 
     print(f"\nTotal results collected: {len(results)}")
     if results:
         try:
-            # Convert results to DataFrame
+
             df = pd.DataFrame(results)
             print("DataFrame created with columns:", df.columns.tolist())
             print("DataFrame shape:", df.shape)
@@ -188,8 +177,7 @@ def process_payment_screenshots(image_directory, output_file="payment_records.xl
             # Save to Excel
             df.to_excel(output_file, index=False)
             print(f"✅ Saved to {output_file}")
-            
-            # Also save as CSV for backup
+
             csv_file = output_file.replace('.xlsx', '.csv')
             df.to_csv(csv_file, index=False)
             print(f"✅ Also saved as CSV: {csv_file}")
@@ -197,13 +185,11 @@ def process_payment_screenshots(image_directory, output_file="payment_records.xl
         except Exception as e:
             print(f"❌ Error saving data: {e}")
             traceback.print_exc()
-            
-            # Try debugging the DataFrame
+
             print("Data that couldn't be saved:")
             for i, item in enumerate(results):
                 print(f"Item {i}: {type(item)} - {item}")
-                
-            # Try saving as JSON as a last resort
+
             try:
                 json_file = output_file.replace('.xlsx', '.json')
                 with open(json_file, 'w') as f:
@@ -219,11 +205,9 @@ def process_payment_screenshots(image_directory, output_file="payment_records.xl
 def process_single_image(image_path, contact_info=None):
     """Process a single image for testing purposes."""
     print(f"Processing single image: {image_path}")
-    
-    # Create a temporary output file
+
     temp_output = f"temp_ocr_test.md"
-    
-    # Run OCR
+
     ocr_text = run_llama_ocr(image_path, temp_output)
     if not ocr_text:
         print("Failed to extract text from image")
@@ -232,18 +216,15 @@ def process_single_image(image_path, contact_info=None):
     print(f"OCR text extracted ({len(ocr_text)} chars)")
     print("OCR text:")
     print(ocr_text)
-    
-    # Extract payment info
+
     extractor = PaymentExtractor()
     payment_info = extractor.extract_payment_info(ocr_text)
-    
-    # Add contact info if provided
+
     if payment_info and contact_info:
         payment_info["contact_name"] = contact_info.get("name")
         payment_info["contact_phone"] = contact_info.get("phone")
         payment_info["sent_date"] = contact_info.get("sent_date")
-    
-    # Clean up
+
     if os.path.exists(temp_output):
         os.remove(temp_output)
         
@@ -256,12 +237,12 @@ def process_single_image(image_path, contact_info=None):
         return None
 
 if __name__ == "__main__":
-    # Check if we're processing a single image or a directory
+
     if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
-        # Process a single image
+
         process_single_image(sys.argv[1])
     else:
-        # Process all images in the directory
+
         image_directory = "payment_screenshots"
         output_file = "payment_records.xlsx"
         

@@ -6,9 +6,9 @@ import json
 
 class WhatsAppChatParser:
     def __init__(self):
-        self.contacts = {}  # Dictionary to store contact info: {name: {name, phone}}
-        self.image_contact_mapping = {}  # Map image filenames to contact info
-        self.message_timestamps = {}  # Store timestamps for each image
+        self.contacts = {}  
+        self.image_contact_mapping = {}  
+        self.message_timestamps = {}  
     
     def parse_chat_file(self, chat_file_path):
         """
@@ -21,11 +21,8 @@ class WhatsAppChatParser:
             print(f"Chat file not found: {chat_file_path}")
             return {}
             
-        # Regular expression to match WhatsApp chat entries
-        # Updated to handle zero-width spaces and other special characters
         chat_pattern = re.compile(r'^[‎\s]*\[(\d{2}/\d{2}/\d{2},\s\d{2}:\d{2}:\d{2})\]\s(.+?):\s(.+)$')
-        
-        # Pattern to match image attachments
+
         image_pattern = re.compile(r'<attached:\s*(\d{8}-PHOTO-\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.jpg)>')
         
         image_entries = []
@@ -37,8 +34,7 @@ class WhatsAppChatParser:
                 line = line.strip()
                 if not line:
                     continue
-                
-                # Debug print
+
                 print(f"Processing line: {line}")
                     
                 match = chat_pattern.match(line)
@@ -46,19 +42,16 @@ class WhatsAppChatParser:
                     timestamp_str, contact_name, message = match.groups()
                     current_timestamp = timestamp_str
                     current_sender = contact_name
-                    
-                    # Store the contact information
+
                     if contact_name not in self.contacts:
                         self.contacts[contact_name] = {
                             'name': contact_name,
                             'phone': self.extract_phone_number(contact_name, message)
                         }
-                    
-                    # Check if this message contains an image attachment
+
                     img_match = image_pattern.search(message)
                     if img_match:
                         image_filename = img_match.group(1)
-                        # Store the timestamp for this image
                         self.message_timestamps[image_filename] = timestamp_str
                         
                         entry = {
@@ -76,11 +69,9 @@ class WhatsAppChatParser:
     
     def extract_phone_number(self, sender_name, message):
         """Extract phone number from sender name or message"""
-        # Check if sender name is a phone number
         if re.match(r'^\+\d+\s\d+$', sender_name):
             return sender_name
-            
-        # Look for phone numbers in the message
+
         phone_match = re.search(r'(\+\d{1,3}\s?\d{10}|\d{10})', message)
         if phone_match:
             return phone_match.group(1)
@@ -92,11 +83,9 @@ class WhatsAppChatParser:
         Match image files to contacts based on filenames and timestamps from chat
         """
         print(f"Mapping {len(image_files)} images to contacts...")
-        
-        # Create mapping of filenames to contact info
+
         filename_mapping = {}
-        
-        # First, create mappings using the full filenames from chat
+
         for entry in image_entries:
             if entry.get('image_filename'):
                 filename = entry['image_filename']
@@ -106,46 +95,38 @@ class WhatsAppChatParser:
                     'sent_date': entry['sent_date']
                 }
                 print(f"Added mapping for {filename} -> {entry['contact_name']}")
-        
-        # Process each image file
+
         mapped_count = 0
         for img_path in image_files:
             img_filename = os.path.basename(img_path)
             print(f"\nTrying to match image: '{img_filename}'")
-            
-            # Try exact match first
+
             if img_filename in filename_mapping:
                 self.image_contact_mapping[img_filename] = filename_mapping[img_filename]
                 print(f"Exact match: {img_filename} -> {filename_mapping[img_filename]['name']}")
                 mapped_count += 1
                 continue
-            
-            # Try to match using number portion at the beginning
+
             img_number_match = re.match(r'^(\d+)', img_filename)
             if img_number_match:
                 img_number = img_number_match.group(1)
-                
-                # Try matching with zero-padded and non-zero-padded versions
+
                 for filename, contact_info in filename_mapping.items():
                     file_number_match = re.match(r'^(\d+)', filename)
                     if file_number_match:
                         file_number = file_number_match.group(1)
-                        
-                        # Try both with and without leading zeros
+
                         if file_number.lstrip('0') == img_number.lstrip('0'):
                             self.image_contact_mapping[img_filename] = contact_info
                             print(f"Number match: {img_filename} -> {contact_info['name']}")
                             mapped_count += 1
                             break
-            
-            # If no match found, try to find the closest timestamp match
+
             if img_filename not in self.image_contact_mapping:
-                # Extract date from filename if present
                 date_match = re.search(r'(\d{4}-\d{2}-\d{2})', img_filename)
                 if date_match:
                     img_date = date_match.group(1)
-                    
-                    # Find the closest timestamp match
+
                     closest_entry = None
                     min_time_diff = float('inf')
                     
@@ -158,7 +139,7 @@ class WhatsAppChatParser:
                                 min_time_diff = time_diff
                                 closest_entry = entry
                     
-                    if closest_entry and min_time_diff <= 1:  # Allow 1 day difference
+                    if closest_entry and min_time_diff <= 1:  
                         self.image_contact_mapping[img_filename] = {
                             'name': closest_entry['contact_name'],
                             'phone': closest_entry['contact_info'].get('phone'),
@@ -167,7 +148,6 @@ class WhatsAppChatParser:
                         print(f"Timestamp match: {img_filename} -> {closest_entry['contact_name']}")
                         mapped_count += 1
                     else:
-                        # If no match found, create an entry with None values
                         self.image_contact_mapping[img_filename] = {
                             'name': None,
                             'phone': None,
@@ -181,7 +161,6 @@ class WhatsAppChatParser:
     def extract_date_from_timestamp(self, timestamp_str):
         """Extract date from WhatsApp timestamp string"""
         try:
-            # Handle different timestamp formats
             if '/' in timestamp_str:
                 date_obj = datetime.strptime(timestamp_str, "%d/%m/%y, %H:%M:%S")
             else:
@@ -192,10 +171,8 @@ class WhatsAppChatParser:
     
     def process_chat_export(self, chat_dir):
         """Process WhatsApp chat export directory to extract contacts and map images"""
-        # Find the chat file (_chat.txt or similar)
         chat_files = list(Path(chat_dir).glob("*_chat.txt"))
         if not chat_files:
-            # Try alternative chat file names
             chat_files = list(Path(chat_dir).glob("*.txt"))
             
         if not chat_files:
@@ -204,18 +181,14 @@ class WhatsAppChatParser:
             
         chat_file = chat_files[0]
         print(f"Found chat file: {chat_file}")
-        
-        # Get all image files
+
         image_files = list(Path(chat_dir).glob("**/*.jpg")) + list(Path(chat_dir).glob("**/*.png"))
         print(f"Found {len(image_files)} image files")
-        
-        # Parse the chat file and get image entries
+
         image_entries = self.parse_chat_file(str(chat_file))
-        
-        # Map images to contacts
+
         contact_mapping = self.map_images_to_contacts(image_files, image_entries)
-        
-        # Save mapping to a file for debugging
+
         try:
             mapping_file = Path(chat_dir) / "contact_mapping.json"
             with open(mapping_file, "w", encoding="utf-8") as f:
