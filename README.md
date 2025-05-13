@@ -27,6 +27,8 @@ npm install llama-ocr
 ```
 
 3. Create a `.env` file with your API keys:
+Website: https://groq.com
+Website: https://together.ai
 ```
 GROQ_API_KEY=your_groq_api_key
 TOGETHER_API_KEY=your_together_api_key
